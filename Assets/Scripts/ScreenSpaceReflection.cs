@@ -25,7 +25,6 @@ public class ScreenSpaceReflection : ScriptableRendererFeature
 
     internal ref ScreenSpaceReflectionSettings settings => ref m_Settings;
 
-
     public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
     {
         if (!GetMaterials())
@@ -70,6 +69,9 @@ public class ScreenSpaceReflection : ScriptableRendererFeature
         private Material m_Material;
 
         private Matrix4x4 m_CameraViewProjection;
+        private Vector4 m_CameraTopLeftCorner = new Vector4();
+        private Vector4 m_CameraXExtent = new Vector4();
+        private Vector4 m_CameraYExtent = new Vector4();
 
         private ProfilingSampler m_ProfilingSampler;
 
@@ -83,6 +85,11 @@ public class ScreenSpaceReflection : ScriptableRendererFeature
 
         private RTHandle m_SSRTexture;
 
+        private static readonly int s_ProjectionParams2ID = Shader.PropertyToID("_ProjectionParams2");
+        private static readonly int s_CameraViewProjectionID = Shader.PropertyToID("_CameraViewProjection");
+        private static readonly int s_CameraTopLeftCornerID = Shader.PropertyToID("_CameraTopLeftCorner");
+        private static readonly int s_CameraViewXExtentID = Shader.PropertyToID("_CameraViewXExtent");
+        private static readonly int s_CameraViewYExtentID = Shader.PropertyToID("_CameraViewYExtent");
 
         internal ScreenSpaceReflectionPass()
         {
@@ -103,11 +110,31 @@ public class ScreenSpaceReflection : ScriptableRendererFeature
             return m_Material != null;
         }
 
-
-
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
-            m_CameraViewProjection = renderingData.cameraData.GetProjectionMatrix() * renderingData.cameraData.GetViewMatrix();
+            Matrix4x4 view = renderingData.cameraData.GetViewMatrix();
+            Matrix4x4 projection = renderingData.cameraData.GetProjectionMatrix();
+            m_CameraViewProjection = projection * view;
+
+            Matrix4x4 cview = view;
+            cview.SetColumn(3, new Vector4(0, 0, 0, 1));
+
+            Matrix4x4 cviewproj = projection * cview;
+            Matrix4x4 cviewProjInv = cviewproj.inverse;
+
+            m_CameraTopLeftCorner = cviewProjInv.MultiplyPoint(new Vector4(-1, 1, -1, 1));
+            Vector4 topRight = cviewProjInv.MultiplyPoint(new Vector4(1, 1, -1, 1));
+            Vector4 bottomLeft = cviewProjInv.MultiplyPoint(new Vector4(-1, -1, -1, 1));
+
+            m_CameraXExtent = topRight - m_CameraTopLeftCorner;
+            m_CameraYExtent = bottomLeft - m_CameraTopLeftCorner;
+
+            m_Material.SetMatrix(s_CameraViewProjectionID, m_CameraViewProjection);
+            m_Material.SetVector(s_ProjectionParams2ID, new Vector4(1.0f / renderingData.cameraData.camera.nearClipPlane, 0, 0, 0));
+            m_Material.SetVector(s_CameraTopLeftCornerID, m_CameraTopLeftCorner);
+            m_Material.SetVector(s_CameraViewXExtentID, m_CameraXExtent);
+            m_Material.SetVector(s_CameraViewYExtentID, m_CameraYExtent);
+
             m_SSRDescriptor = renderingData.cameraData.cameraTargetDescriptor;
             m_SSRDescriptor.msaaSamples = 1;
             m_SSRDescriptor.depthBufferBits = 0;
@@ -135,8 +162,6 @@ public class ScreenSpaceReflection : ScriptableRendererFeature
                 Blitter.BlitCameraTexture(cmd, source, m_SSRTexture, m_Material, 0);
                 Blitter.BlitCameraTexture(cmd, m_SSRTexture, target, m_Material, 1);
             }
-
-            context.ExecuteCommandBuffer(cmd);
         }
 
         internal void Dispose()
