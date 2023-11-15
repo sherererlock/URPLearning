@@ -156,9 +156,23 @@ public class ScreenSpaceReflection : ScriptableRendererFeature
 
             RTHandle source = m_Renderer.cameraColorTargetHandle;
             RTHandle target = m_Renderer.cameraColorTargetHandle;
+            if(m_SSRTexture == null || !m_SSRTexture.rt.IsCreated())
+            {
+                Debug.LogErrorFormat("{0}.Execute(): Missing m_SSRTexture. ScreenSpaceReflection pass will not execute. Check for missing reference in the renderer resources.", GetType().Name);
+
+                return;
+            }
+
+            if(source.rt == null)
+            {
+                //Debug.LogErrorFormat("{0}.Execute(): Missing cameraColorTargetHandle. ScreenSpaceReflection pass will not execute. Check for missing reference in the renderer resources.", GetType().Name);
+
+                return;
+            }
 
             using (new ProfilingScope(cmd, m_ProfilingSampler))
             {
+                PostProcessUtils.SetSourceSize(cmd, m_SSRDescriptor);
                 Blitter.BlitCameraTexture(cmd, source, m_SSRTexture, m_Material, 0);
                 Blitter.BlitCameraTexture(cmd, m_SSRTexture, target, m_Material, 1);
             }

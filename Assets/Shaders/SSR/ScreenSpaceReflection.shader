@@ -19,6 +19,7 @@ Shader "Hidden/ScreenSpaceReflection"
             Cull off
 
             HLSLPROGRAM
+            #pragma enable_d3d11_debug_symbols
             #pragma vertex Vert
             #pragma fragment SSR
             #include "ScreenSpaceReflection.hlsl"
@@ -33,6 +34,7 @@ Shader "Hidden/ScreenSpaceReflection"
             Cull off
 
             HLSLPROGRAM
+            #pragma enable_d3d11_debug_symbols
             #pragma vertex Vert
             #pragma fragment Copy
             #include "ScreenSpaceReflection.hlsl"
