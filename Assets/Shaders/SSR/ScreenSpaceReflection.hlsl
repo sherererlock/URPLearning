@@ -146,7 +146,10 @@ float4 RayMarchingInTextureSpace(float2 uv)
 
 	float3 deltaUV = distanceUV / (float) maxDis;
 
+	startTS += deltaUV * InterleavedGradientNoise(uv * 2.0f - 1.0f, 0);
+
 	float3 start = startTS + deltaUV;
+
 	float3 cur = start;
 
 	int hitIndex = -1;
@@ -254,7 +257,7 @@ float4 RayMarchingInTextureSpace(float2 uv)
 
 	half4 color = GetSource(uv);
 	
-	return hitIndex == -1 ? color : color + GetSource(intesection.xy);
+	return hitIndex == -1 ? color :  GetSource(intesection.xy);
 }
 
 half4 SSR(Varyings input) : SV_Target
