@@ -177,8 +177,55 @@ ScriptableRenderer.Execute(ScriptableRenderContext context, ref RenderingData re
     ScriptableRenderPass.Configure(cmd, cameraData.cameraTargetDescriptor);
     
     // 设置camera相关的Shader全局变量
+    // _WorldSpaceCameraPos, _ScreenParams,zBufferParams,cameraMatrix
     SetPerCameraProperties(CommandBuffer cmd, ref CameraData cameraData, bool isTargetFlipped);
+    {
+        context.SetupCameraProperties(camera);
+        SetPerCameraShaderVariables(cmd, ref cameraData);
+    }
+    
+    ExecuteBlock(RenderPassBlock.MainRenderingOpaque, in renderBlocks, context, ref renderingData);
+    {
+    	ExecuteRenderPass(context, renderPass, ref renderingData);
+        context.Submit();
+	}
+    
+    ExecuteBlock(RenderPassBlock.MainRenderingTransparent, in renderBlocks, context, ref renderingData);
+    
+    ExecuteBlock(RenderPassBlock.AfterRendering, in renderBlocks, context, ref renderingData);
+    
+    InternalFinishRendering(context, cameraData.resolveFinalTarget, renderingData);
+    {
+        ScriptableRenderPass.OnFinishCameraStackRendering();
+        FinishRendering();
+        {
+            m_ColorBufferSystem.Clear();
+            m_ActiveCameraColorAttachment = null;
+            m_ActiveCameraDepthAttachment = null; 
+        }
+    }
 }
+
+ScriptableRenderer.ExecuteRenderPass(ScriptableRenderContext context, ScriptableRenderPass renderPass, ref RenderingData renderingData)
+{
+    SetRenderPassAttachments(cmd, renderPass, ref cameraData);
+    
+    renderPass.Execute(context, ref renderingData);
+}
+
+ScriptableRenderer.SetRenderPassAttachments(CommandBuffer cmd, ScriptableRenderPass renderPass, ref CameraData cameraData)
+{
+    ClearFlag cameraClearFlag = GetCameraClearFlag(ref cameraData);
+    ScriptableRenderer.SetRenderTarget(CommandBuffer cmd, RTHandle colorAttachment, RTHandle depthAttachment, ClearFlag clearFlag, Color clearColor, RenderBufferStoreAction colorStoreAction, RenderBufferStoreAction depthStoreAction)
+    {
+        SetRenderTarget(cmd, colorAttachment, colorLoadAction, colorStoreAction, depthAttachment, depthLoadAction, depthStoreAction, clearFlag, clearColor);
+    }
+}
+```
+
+RT的创建和设置
+
+```c#
 
 ```
 
