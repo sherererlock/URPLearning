@@ -659,7 +659,6 @@ namespace UnityEngine.Rendering.Universal
                 m_CopyDepthPass.renderPassEvent = RenderPassEvent.AfterRenderingTransparents;
             }
 
-
             createColorTexture |= RequiresIntermediateColorTexture(ref cameraData);
             createColorTexture |= renderPassInputs.requiresColorTexture;
             createColorTexture |= renderPassInputs.requiresColorTextureCreated;
