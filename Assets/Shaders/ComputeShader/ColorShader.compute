@@ -13,10 +13,18 @@ RWTexture2D<float4> Result;
 //    Result[id.xy] = float4(id.x & id.y, (id.x & 15)/15.0, (id.y & 15)/15.0, 0.0);
 //}
 
-[numthreads(8, 8, 1)]
+[numthreads(8, 2, 4)]
 void CSMain(uint3 id : SV_DispatchThreadID, uint3 groudID: SV_GroupID, uint3 groupThreadID : SV_GroupThreadID)
 {
-    float colorx = groudID.x % 2 == 0 ? 1.0 : 0.0;
-    float colory = groudID.y % 2 == 0 ? 1.0 : 0.0;
-    Result[id.xy] = float4(colorx, colory, 0, 0);
+    //float colorx = groudID.x % 2 == 0 ? 1.0 : 0.0;
+    //float colory = groudID.y % 2 == 0 ? 1.0 : 0.0;
+    //Result[id.xy] = float4(colorx, colory, 0, 0);
+
+
+    float colorx = groupThreadID.x % 2 == 0 ? 1.0 : 0.0;
+    float colory = groupThreadID.y % 2 == 0 ? 1.0 : 0.0;
+
+    uint2 xy = id.xy;
+    xy.y += id.z * 2;
+    Result[xy] = float4(colorx, 0, 0, 0);
 }

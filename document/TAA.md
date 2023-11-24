@@ -64,8 +64,6 @@ class MotionVectorsPersistentData{
 
 ```
 
-
-
 #### 整体流程
 
 ```c#
@@ -407,9 +405,7 @@ UniversalRenderPipeline.RenderSingleCameraInternal()
 }
 ```
 
-
-
-#### Shader代码片段解读
+##### Shader代码片段解读
 
 ```c
 /*
@@ -429,3 +425,47 @@ ZTest Always ZWrite Off Blend Off Cull Off
    - 否则插值比例是c#设置的值
 9. 插值获得最终color。在YCoCg空间或者根据亮度。
 
+#### Artifact
+
+##### Ghosting
+
+原因：两帧的像素位置对不上，相机的旋转移动和物体的旋转移动都会导致这个情况，术语上叫history mismatch
+
+解决方案：
+
+- 使用重投影或者motion vector计算出上一帧准确的uv值采样
+- 混合时得在uv和颜色上做限制
+  - motion vector明显过大时，减小weightofHistory
+  - history clamping
+  - 用stencil区分人物和背景，分别加以处理
+
+###### history clamping
+
+以当前fragment为中心，取3x3的相邻像素，计算这9个像素所构成的颜色区间闭包。最基本的做法是分别为rgb三个分量统计出最大值和最小值，也就是在rgb颜色空间中取一个aabb。可以采用更精确的颜色范围表示，也就是在Y'CbCr颜色空间做clamping。这样，背景色如果只是周围像素的亮度(这里是Relative Luminance)有差异，CbCr的取值范围仍是很小的，有助于更精确的clamp
+
+##### Blurring
+
+原因：lastUV的计算只考虑上一帧的纹理坐标值，但采样的图片是history buffer，可能会出现不一致
+
+解决方案：
+
+- 画面静止下来后，画面自然会收敛至清晰的状态，收敛的速度取决于weightofHistory,所以减小weightofHistory
+- sharpen pass
+
+##### Aliasing when moving
+
+物体移动时，边缘会重新出现锯齿
+
+原因：因为在物体边缘采样motion vector时，如果采样点在物体外，采样得到的motion vector会比较小，则计算出的history texel的位置也是在物体外，那么这一帧这个像素就被采样的很糟糕
+
+解决方案：以当前采样点为中心，采样3x3个motion vector，并取对应深度最浅的那个（我实现时取了绝对值最大的那个，效果基本一样）。
+
+##### Flickering
+
+原因：
+
+高频区域颜色变化较快，采样点迅速在颜色较亮的区域和颜色较暗的区域分别采样混合导致闪烁
+
+解决方案
+
+？
