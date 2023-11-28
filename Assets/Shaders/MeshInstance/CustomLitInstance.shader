@@ -109,6 +109,7 @@ Shader "Custom/URPSimpleLitInstance"
                 }
 
                 half3 color = baseMap.xyz * diffuse * _BaseColor.xyz;
+
                 clip(baseMap.a - _Cutoff);
                 return float4(color, 1);
             }
@@ -119,7 +120,7 @@ Shader "Custom/URPSimpleLitInstance"
         Pass
         {
             Name "ShadowCaster"
-            Tags{"LightMode" = "ShadowCaster"}
+            Tags{"LightMode" = "ShadowCaster1"}
 
             ZWrite On
             ZTest LEqual

@@ -1,0 +1,51 @@
+#pragma kernel ViewportCulling
+
+uint instanceCount;
+StructuredBuffer<float4x4> object2Worlds;
+float4 planes[6];
+AppendStructuredBuffer<float4x4> cullresults;
+
+bool IsOutsideThePlane(float4 plane, float3 pointPosition)
+{
+    if (dot(plane.xyz, pointPosition) + plane.w > 0)
+        return true;
+
+    return false;
+}
+
+
+[numthreads(640,1,1)]
+void ViewportCulling(uint3 id : SV_DispatchThreadID)
+{
+    if (id.x >= instanceCount)
+        return;
+
+    float4x4 o2w = object2Worlds[id.x];
+
+    static float3 boundMin = float3(-0.2f, 0.0f, -0.3f);//包围盒最小点
+    static float3 boundMax = float3(0.2f, 0.5f, 0.3f);//包围盒最大点
+    float4 boundVerts[8];
+    boundVerts[0] = mul(o2w, float4(boundMin, 1));
+    boundVerts[1] = mul(o2w, float4(boundMax, 1));
+    boundVerts[2] = mul(o2w, float4(boundMax.x, boundMax.y, boundMin.z, 1));
+    boundVerts[3] = mul(o2w, float4(boundMax.x, boundMin.y, boundMax.z, 1));
+    boundVerts[6] = mul(o2w, float4(boundMax.x, boundMin.y, boundMin.z, 1));
+    boundVerts[4] = mul(o2w, float4(boundMin.x, boundMax.y, boundMax.z, 1));
+    boundVerts[5] = mul(o2w, float4(boundMin.x, boundMax.y, boundMin.z, 1));
+    boundVerts[7] = mul(o2w, float4(boundMin.x, boundMin.y, boundMax.z, 1));
+
+    for (int i = 0; i < 6; i++)
+    {
+        for (int j = 0; j < 8; j++)
+        {
+            float3 boundPosition = boundVerts[j].xyz;
+
+            if (!IsOutsideThePlane(planes[i], boundPosition))
+                break;
+            if (j == 7)
+                return;
+        }
+    }
+
+    cullresults.Append(o2w);
+}

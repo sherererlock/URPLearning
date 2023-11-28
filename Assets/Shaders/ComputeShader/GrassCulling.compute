@@ -1,29 +1,28 @@
-#pragma kernel ViewportCulling
+#pragma kernel GrassCulling
 
 uint instanceCount;
+float4x4 vpMatrix;
 StructuredBuffer<float4x4> object2Worlds;
-float4 planes[6];
 AppendStructuredBuffer<float4x4> cullresults;
 
-bool IsOutsideThePlane(float4 plane, float3 pointPosition)
+bool IsInClipSpace(float4 clipSpacePosition)
 {
-    if (dot(plane.xyz, pointPosition) + plane.w > 0)
-        return true;
-
-    return false;
+    return clipSpacePosition.x > -clipSpacePosition.w && clipSpacePosition.x < clipSpacePosition.w&&
+    clipSpacePosition.y > -clipSpacePosition.w && clipSpacePosition.y < clipSpacePosition.w&&
+    clipSpacePosition.z > -1 && clipSpacePosition.z < clipSpacePosition.w;
 }
 
-
 [numthreads(640,1,1)]
-void ViewportCulling(uint3 id : SV_DispatchThreadID)
+void GrassCulling(uint3 id : SV_DispatchThreadID)
 {
     if (id.x >= instanceCount)
         return;
 
     float4x4 o2w = object2Worlds[id.x];
+    float4x4 mvp = mul(vpMatrix, o2w);
 
-    float3 boundMin = float3(-1.5, 0, -1.5);
-    float3 boundMax = float3(1.5, 7, 1.5);
+    static float3 boundMin = float3(-0.2f, 0.0f, -0.3f);
+    static float3 boundMax = float3(0.2f, 0.5f, 0.3f);
     float4 boundVerts[8];
     boundVerts[0] = mul(o2w, float4(boundMin, 1));
     boundVerts[1] = mul(o2w, float4(boundMax, 1));
@@ -34,18 +33,13 @@ void ViewportCulling(uint3 id : SV_DispatchThreadID)
     boundVerts[5] = mul(o2w, float4(boundMin.x, boundMax.y, boundMin.z, 1));
     boundVerts[7] = mul(o2w, float4(boundMin.x, boundMin.y, boundMax.z, 1));
 
-    for (int i = 0; i < 6; i++)
+    bool isInClip = false;
+    for (int i = 0; i < 8; i++)
     {
-        for (int j = 0; j < 8; j++)
-        {
-            float3 boundPosition = boundVerts[j].xyz;
-
-            if (!IsOutsideThePlane(planes[i], boundPosition))
-                break;
-            if (j == 7)
-                return;
-        }
+        float4 clipspacepos = mul(mvp, boundVerts[i]);
+        isInClip = IsInClipSpace(clipspacepos);
     }
 
-    cullresults.Append(o2w);
+    if(isInClip)
+        cullresults.Append(o2w);
 }
