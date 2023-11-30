@@ -1,15 +1,18 @@
 #pragma kernel GrassCulling
+#pragma enable_d3d11_debug_symbols
 
 uint instanceCount;
 float4x4 vpMatrix;
 StructuredBuffer<float4x4> object2Worlds;
 AppendStructuredBuffer<float4x4> cullresults;
+Texture2D depthMipmap;
+uint depthTextureSize;
 
 bool IsInClipSpace(float4 clipSpacePosition)
 {
     return clipSpacePosition.x > -clipSpacePosition.w && clipSpacePosition.x < clipSpacePosition.w&&
     clipSpacePosition.y > -clipSpacePosition.w && clipSpacePosition.y < clipSpacePosition.w&&
-    clipSpacePosition.z > -1 && clipSpacePosition.z < clipSpacePosition.w;
+    clipSpacePosition.z > -clipSpacePosition.w && clipSpacePosition.z < clipSpacePosition.w;
 }
 
 [numthreads(640,1,1)]
@@ -33,13 +36,73 @@ void GrassCulling(uint3 id : SV_DispatchThreadID)
     boundVerts[5] = mul(o2w, float4(boundMin.x, boundMax.y, boundMin.z, 1));
     boundVerts[7] = mul(o2w, float4(boundMin.x, boundMin.y, boundMax.z, 1));
 
+    float minX = 1, minY = 1, minZ = 1;
+    float maxX = -1, maxY = -1, maxZ = -1;
+
     bool isInClip = false;
     for (int i = 0; i < 8; i++)
     {
         float4 clipspacepos = mul(mvp, boundVerts[i]);
-        isInClip = IsInClipSpace(clipspacepos);
+        if (!isInClip && IsInClipSpace(clipspacepos))
+            isInClip = true;
+
+        clipspacepos.xyz /= clipspacepos.w;
+
+        minX = min(clipspacepos.x, minX);
+        minY = min(clipspacepos.y, minY);
+        minZ = min(clipspacepos.z, minZ);
+        maxX = max(clipspacepos.x, maxX);
+        maxY = max(clipspacepos.y, maxY);
+        maxZ = max(clipspacepos.z, maxZ);
     }
 
-    if(isInClip)
-        cullresults.Append(o2w);
+    if (!isInClip)
+        return;
+
+//#if UNITY_REVERSED_Z
+    float z = maxZ;
+//#else
+//    float z = minZ * 0.5 + 0.5;
+//#endif
+
+    float2 uvLeftBottom = float2(minX, minY) * 0.5 + 0.5;
+    float2 uvRightTop = float2(maxX, maxY) * 0.5 + 0.5;
+
+    uint mipLevel = (uint)clamp(depthTextureSize * 2 / log2(max(maxX - minX, maxY - minY)), 0, log2(depthTextureSize) - 4);
+    mipLevel = 4;
+    uint size = depthTextureSize / (1 << mipLevel);
+
+    uint2 pixeLB = uint2(clamp(uvLeftBottom.x * size, 0, size - 1), clamp(uvLeftBottom.y * size, 0, size - 1));
+    uint2 pixeRT = uint2(clamp(uvRightTop.x * size, 0, size - 1), clamp(uvRightTop.y * size, 0, size - 1));
+
+    float depth1 = depthMipmap.mips[mipLevel][pixeLB].r;
+    float depth2 = depthMipmap.mips[mipLevel][pixeRT].r;
+    float depth3 = depthMipmap.mips[mipLevel][int2(pixeLB.x, pixeRT.y)].r;
+    float depth4 = depthMipmap.mips[mipLevel][int2(pixeRT.x, pixeLB.y)].r;
+
+    float depthInTexture = depthMipmap.mips[mipLevel][pixeLB].r;
+
+    if (pixeLB.x < pixeRT.x && pixeLB.y < pixeRT.y) {
+        depthInTexture = min(min(depthInTexture, depthMipmap.mips[mipLevel][pixeRT].r),
+            min(depthMipmap.mips[mipLevel][int2(pixeLB.x, pixeRT.y)].r, depthMipmap.mips[mipLevel][int2(pixeRT.x, pixeLB.y)].r));
+    }
+    else if (pixeLB.x < pixeRT.x)
+        depthInTexture = min(depthInTexture, depthMipmap.mips[mipLevel][int2(pixeRT.x, pixeLB.y)].r);
+    else if (pixeLB.y < pixeRT.y)
+        depthInTexture = min(depthInTexture, depthMipmap.mips[mipLevel][int2(pixeLB.x, pixeRT.y)].r);
+
+    if (depthInTexture >= z)
+        return;
+
+//#if UNITY_REVERSED_Z
+    //float depth = min(min(min(depth1, depth2), depth3), depth4);
+    //if (z < depth)
+    //    return;
+//#else
+//    float depth = max(max(max(depth1, depth2), depth3), depth4);
+//    if (z > depth)
+//        return;
+//#endif
+
+    cullresults.Append(o2w);
 }

@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class GrassRendering : MonoBehaviour
 {
@@ -22,12 +23,15 @@ public class GrassRendering : MonoBehaviour
     int kernel;
 
     int subMeshIndex;
-
+    int depthMipmapIDc;
+    int depthMipmapIDs;
     // Start is called before the first frame update
     void Start()
     {
         kernel = cullingCompute.FindKernel("GrassCulling");
         argsBuffer = new ComputeBuffer(1, args.Length * sizeof(uint), ComputeBufferType.IndirectArguments);
+ 
+        depthMipmapIDc = Shader.PropertyToID("depthMipmap");
 
         UpdateBuffer();
     }
@@ -43,7 +47,11 @@ public class GrassRendering : MonoBehaviour
 
         cullingCompute.SetBuffer(kernel, "cullresults", cullingResult);
         cullingCompute.SetBuffer(kernel, "object2Worlds", l2wMatrixBuffer);
+
         cullingCompute.SetMatrix(vpMatrixId, GL.GetGPUProjectionMatrix(Camera.main.projectionMatrix, false) * Camera.main.worldToCameraMatrix);
+        depthMipmapIDs = Shader.PropertyToID("_DepthMipmap");
+        cullingCompute.SetTextureFromGlobal(kernel, depthMipmapIDc, depthMipmapIDs);
+
         cullingCompute.Dispatch(kernel, 1 + (count / 640), 1, 1);
 
         grassMaterial.SetBuffer("positionBuffer", cullingResult);
@@ -58,6 +66,9 @@ public class GrassRendering : MonoBehaviour
     {
         l2wMatrixBuffer?.Release();
         l2wMatrixBuffer = null;
+
+        cullingResult?.Release();
+        cullingResult = null;
 
         argsBuffer?.Release();
         argsBuffer = null;

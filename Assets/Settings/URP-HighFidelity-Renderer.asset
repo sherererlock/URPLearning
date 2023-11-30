@@ -35,6 +35,25 @@ MonoBehaviour:
   - {fileID: 2800000, guid: 3302065f671a8450b82c9ddf07426f3a, type: 3}
   - {fileID: 2800000, guid: 56a77a3e8d64f47b6afe9e3c95cb57d5, type: 3}
   m_Shader: {fileID: 4800000, guid: 0849e84e3d62649e8882e9d6f056a017, type: 3}
+--- !u!114 &-563928682866535847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed2f91ff66433df4384e5e04da80b845, type: 3}
+  m_Name: HizRenderFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  m_Shader: {fileID: 4800000, guid: 105e140a1ad72a545aa72134f8f137e8, type: 3}
+  cullingCompute: {fileID: 7200000, guid: 17fa0f2860183714683bf540df3c98d1, type: 3}
+  grassMesh: {fileID: 4300000, guid: 02e48aea181058a47acc4c8a06b88f13, type: 3}
+  grassMaterial: {fileID: 2100000, guid: 54952c475179ebe4a8d80ac21460395e, type: 2}
+  HorizontalGrassCount: 300
+  VerticalGrassCount: 300
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -55,7 +74,8 @@ MonoBehaviour:
   - {fileID: -1878332245247344467}
   - {fileID: 3729951494758714830}
   - {fileID: 7945252014376545922}
-  m_RendererFeatureMap: adc0de57c6d2eee5cecd87521f73c33382eede7f9c34436e
+  - {fileID: -563928682866535847}
+  m_RendererFeatureMap: adc0de57c6d2eee5cecd87521f73c33382eede7f9c34436e591216cbd9852cf8
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}

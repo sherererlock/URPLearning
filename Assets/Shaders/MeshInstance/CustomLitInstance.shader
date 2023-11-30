@@ -13,9 +13,8 @@ Shader "Custom/URPSimpleLitInstance"
 
     SubShader
     {
-        ZWrite on
-
-        Cull[_Cull]
+        ZWrite On
+        ZTest LEqual
 
         Tags
         {
