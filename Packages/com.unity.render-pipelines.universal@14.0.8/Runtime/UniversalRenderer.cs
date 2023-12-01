@@ -126,7 +126,7 @@ namespace UnityEngine.Rendering.Universal
         internal RTHandle m_ActiveCameraDepthAttachment;
         internal RTHandle m_CameraDepthAttachment;
         RTHandle m_XRTargetHandleAlias;
-        internal RTHandle m_DepthTexture;
+        public RTHandle m_DepthTexture;
         RTHandle m_NormalsTexture;
         RTHandle m_DecalLayersTexture;
         RTHandle m_OpaqueColor;

@@ -11,8 +11,6 @@ public class SphereGenerator : MonoBehaviour
 
     void Start()
     {
-        UniversalRenderPipeline urp;
-        UniversalRenderPipelineAsset asset;
         GenerateSpheres();
     }
 

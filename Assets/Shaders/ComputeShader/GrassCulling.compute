@@ -10,8 +10,8 @@ uint depthTextureSize;
 
 bool IsInClipSpace(float4 clipSpacePosition)
 {
-    return clipSpacePosition.x > -clipSpacePosition.w && clipSpacePosition.x < clipSpacePosition.w&&
-    clipSpacePosition.y > -clipSpacePosition.w && clipSpacePosition.y < clipSpacePosition.w&&
+    return clipSpacePosition.x > -clipSpacePosition.w && clipSpacePosition.x < clipSpacePosition.w &&
+    clipSpacePosition.y > -clipSpacePosition.w && clipSpacePosition.y < clipSpacePosition.w &&
     clipSpacePosition.z > -clipSpacePosition.w && clipSpacePosition.z < clipSpacePosition.w;
 }
 
@@ -22,29 +22,28 @@ void GrassCulling(uint3 id : SV_DispatchThreadID)
         return;
 
     float4x4 o2w = object2Worlds[id.x];
-    float4x4 mvp = mul(vpMatrix, o2w);
+    float4x4 mvpMatrix = mul(vpMatrix, o2w);
 
     static float3 boundMin = float3(-0.2f, 0.0f, -0.3f);
     static float3 boundMax = float3(0.2f, 0.5f, 0.3f);
     float4 boundVerts[8];
-    boundVerts[0] = mul(o2w, float4(boundMin, 1));
-    boundVerts[1] = mul(o2w, float4(boundMax, 1));
-    boundVerts[2] = mul(o2w, float4(boundMax.x, boundMax.y, boundMin.z, 1));
-    boundVerts[3] = mul(o2w, float4(boundMax.x, boundMin.y, boundMax.z, 1));
-    boundVerts[6] = mul(o2w, float4(boundMax.x, boundMin.y, boundMin.z, 1));
-    boundVerts[4] = mul(o2w, float4(boundMin.x, boundMax.y, boundMax.z, 1));
-    boundVerts[5] = mul(o2w, float4(boundMin.x, boundMax.y, boundMin.z, 1));
-    boundVerts[7] = mul(o2w, float4(boundMin.x, boundMin.y, boundMax.z, 1));
+    boundVerts[0] = float4(boundMin, 1);
+    boundVerts[1] = float4(boundMax, 1);
+    boundVerts[2] = float4(boundMax.x, boundMax.y, boundMin.z, 1);
+    boundVerts[3] = float4(boundMax.x, boundMin.y, boundMax.z, 1);
+    boundVerts[6] = float4(boundMax.x, boundMin.y, boundMin.z, 1);
+    boundVerts[4] = float4(boundMin.x, boundMax.y, boundMax.z, 1);
+    boundVerts[5] = float4(boundMin.x, boundMax.y, boundMin.z, 1);
+    boundVerts[7] = float4(boundMin.x, boundMin.y, boundMax.z, 1);
 
     float minX = 1, minY = 1, minZ = 1;
     float maxX = -1, maxY = -1, maxZ = -1;
 
     bool isInClip = false;
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i ++)
     {
-        float4 clipspacepos = mul(mvp, boundVerts[i]);
-        if (!isInClip && IsInClipSpace(clipspacepos))
-            isInClip = true;
+        float4 clipspacepos = mul(mvpMatrix, boundVerts[i]);
+        isInClip = !isInClip && IsInClipSpace(clipspacepos) ? true : isInClip;
 
         clipspacepos.xyz /= clipspacepos.w;
 
@@ -59,17 +58,12 @@ void GrassCulling(uint3 id : SV_DispatchThreadID)
     if (!isInClip)
         return;
 
-//#if UNITY_REVERSED_Z
     float z = maxZ;
-//#else
-//    float z = minZ * 0.5 + 0.5;
-//#endif
 
     float2 uvLeftBottom = float2(minX, minY) * 0.5 + 0.5;
     float2 uvRightTop = float2(maxX, maxY) * 0.5 + 0.5;
 
-    uint mipLevel = (uint)clamp(depthTextureSize * 2 / log2(max(maxX - minX, maxY - minY)), 0, log2(depthTextureSize) - 4);
-    mipLevel = 4;
+    uint mipLevel = (uint)clamp(log2(max(maxX - minX, maxY - minY) * 0.5 * depthTextureSize), 0, log2(depthTextureSize) - 4);
     uint size = depthTextureSize / (1 << mipLevel);
 
     uint2 pixeLB = uint2(clamp(uvLeftBottom.x * size, 0, size - 1), clamp(uvLeftBottom.y * size, 0, size - 1));
@@ -80,29 +74,9 @@ void GrassCulling(uint3 id : SV_DispatchThreadID)
     float depth3 = depthMipmap.mips[mipLevel][int2(pixeLB.x, pixeRT.y)].r;
     float depth4 = depthMipmap.mips[mipLevel][int2(pixeRT.x, pixeLB.y)].r;
 
-    float depthInTexture = depthMipmap.mips[mipLevel][pixeLB].r;
-
-    if (pixeLB.x < pixeRT.x && pixeLB.y < pixeRT.y) {
-        depthInTexture = min(min(depthInTexture, depthMipmap.mips[mipLevel][pixeRT].r),
-            min(depthMipmap.mips[mipLevel][int2(pixeLB.x, pixeRT.y)].r, depthMipmap.mips[mipLevel][int2(pixeRT.x, pixeLB.y)].r));
-    }
-    else if (pixeLB.x < pixeRT.x)
-        depthInTexture = min(depthInTexture, depthMipmap.mips[mipLevel][int2(pixeRT.x, pixeLB.y)].r);
-    else if (pixeLB.y < pixeRT.y)
-        depthInTexture = min(depthInTexture, depthMipmap.mips[mipLevel][int2(pixeLB.x, pixeRT.y)].r);
-
-    if (depthInTexture >= z)
+    float depth = min(min(min(depth1, depth2), depth3), depth4);
+    if (z < depth)
         return;
-
-//#if UNITY_REVERSED_Z
-    //float depth = min(min(min(depth1, depth2), depth3), depth4);
-    //if (z < depth)
-    //    return;
-//#else
-//    float depth = max(max(max(depth1, depth2), depth3), depth4);
-//    if (z > depth)
-//        return;
-//#endif
 
     cullresults.Append(o2w);
 }
