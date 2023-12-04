@@ -84,7 +84,6 @@ Shader "Custom/URPSimpleLit"
 
             float4 frag(Varings IN) :SV_Target
             {
-
                 half4 baseMap = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
                 //¼ÆËãÖ÷¹â
                 Light light = GetMainLight();
