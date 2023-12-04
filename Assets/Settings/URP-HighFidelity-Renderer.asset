@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed2f91ff66433df4384e5e04da80b845, type: 3}
   m_Name: HizRenderFeature
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   m_Shader: {fileID: 4800000, guid: 105e140a1ad72a545aa72134f8f137e8, type: 3}
   cullingCompute: {fileID: 7200000, guid: 17fa0f2860183714683bf540df3c98d1, type: 3}
   grassMesh: {fileID: 4300000, guid: 02e48aea181058a47acc4c8a06b88f13, type: 3}

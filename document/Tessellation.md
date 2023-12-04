@@ -256,7 +256,7 @@ void MyDomainProgram (
 	MY_DOMAIN_PROGRAM_INTERPOLATE(uv2)
 ```
 
-唯一不进行插值的是实例ID。由于Unity不支持同时进行GPU实例化和细分，复制此ID没有意义。为了防止编译错误，从三个着色器通道中移除multi-compile指令。这也将从着色器的GUI中移除实例化选项。
+唯一不进行插值的是实例ID。由于**Unity不支持同时进行GPU实例化和细分**，复制此ID没有意义。为了防止编译错误，从三个着色器通道中移除multi-compile指令。这也将从着色器的GUI中移除实例化选项。
 
 ```
 //			#pragma multi_compile_instancing
