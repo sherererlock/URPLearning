@@ -5,7 +5,6 @@
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderVariablesFunctions.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-
 // Simple noise function, sourced from http://answers.unity.com/answers/624136/view.html
 // Extended discussion on this function can be found at the following link:
 // https://forum.unity.com/threads/am-i-over-complicating-this-random-function.454887/#post-2949326
@@ -43,14 +42,18 @@ float _BladeWidthRandom;
 float _BladeHeight;
 float _BladeHeightRandom;
 float _TessellationUniform;
-float4 _WindDistortionMap_ST;
 float4 _WindFrequency;
 float _WindStrength;
 float _BladeForward;
 float _BladeCurve;
+float _Strength;
 CBUFFER_END
 
 sampler2D _WindDistortionMap;
+float4 _WindDistortionMap_ST;
+
+float3 _PositionMoving;
+float _Radius;
 
 struct Attributes
 {
@@ -145,7 +148,7 @@ GeometryOutput VertexOutput(float3 pos, float3 normal, float2 uv)
 	return o;
 }
 
-#define SEGMENT_COUNT 3
+#define SEGMENT_COUNT 5
 
 [maxvertexcount(SEGMENT_COUNT * 2 + 1)]
 void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<GeometryOutput> stream)
@@ -162,16 +165,16 @@ void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<Geometr
 		);
 
 	float3x3 rotationYMatrix = AngleAxis3x3(rand(pos) * 2 * 3.141592654, float3(0, 0, 1));
-
 	float3x3 bendRotationMatrix = AngleAxis3x3(rand(pos.zzx) * 0.5 * 3.141592654 * _BendRotation, float3(-1, 0, 0));
 	float3x3 rotationMatrix = mul(rotationYMatrix, bendRotationMatrix);
+	float3x3 transformMatrix = mul(tangentToLocal, rotationMatrix);
 
 	float2 uv = pos.xz * _WindDistortionMap_ST.xy + _WindDistortionMap_ST.zw + _WindFrequency * _Time.y;
 	float2 windSample = (tex2Dlod(_WindDistortionMap, float4(uv, 0, 0)).xy * 2 - 1) * _WindStrength;
 	float3 wind = normalize(float3(windSample.x, windSample.y, 0));
 	float3x3 windRotation = AngleAxis3x3(3.141592654 * windSample, wind);
-
-	float3x3 transformMatrix = mul(mul(tangentToLocal, rotationMatrix), windRotation);
+	if(_WindStrength != 0.0)
+		transformMatrix = mul(transformMatrix, windRotation);
 
 	float3x3 transformMatrixFacing = mul(tangentToLocal, rotationYMatrix);
 
@@ -186,6 +189,14 @@ void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<Geometr
 	float3 tangentNormal = float3(0, -1, 0);
 	float3 localNormal = mul(tangentToLocal, tangentNormal);
 
+	float3 worldPos = TransformObjectToWorld(pos);
+	float dis = distance(_PositionMoving, worldPos);
+	float3 radius = 1.0 - saturate(dis / _Radius);
+	float3 sphereDis = worldPos - _PositionMoving;
+	sphereDis *= radius;
+	//sphereDis = clamp(sphereDis * _Strength, -0.8, 0.8);
+	sphereDis *= 10;
+
 	for (int i = 0; i < SEGMENT_COUNT; i++)
 	{
 		float t = i / (float)SEGMENT_COUNT;
@@ -198,11 +209,13 @@ void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<Geometr
 		float3 offset1 = float3(w, f, h);
 		float3 offset2 = float3(-w, f, h);
 
-		stream.Append(VertexOutput(pos + mul(mat, offset1), localNormal, float2(0, t)));
-		stream.Append(VertexOutput(pos + mul(mat, offset2), localNormal, float2(1, t)));
+		float3 newpos = i == 0 ? pos : pos + sphereDis * t;
+
+		stream.Append(VertexOutput(newpos + mul(mat, offset1), localNormal, float2(0, t)));
+		stream.Append(VertexOutput(newpos + mul(mat, offset2), localNormal, float2(1, t)));
 	}
 
-	stream.Append(VertexOutput(pos + mul(transformMatrix, float3(0, forward, height)), localNormal, float2(0.5, 1)));
+	stream.Append(VertexOutput(pos + float3(sphereDis.x * 1.5, sphereDis.y, sphereDis.z * 1.5) + mul(transformMatrix, float3(0, forward, height)), localNormal, float2(0.5, 1)));
 }
 
 float3 SampleEnv(float3 normal) {

@@ -19,6 +19,9 @@ Shader "Custom/Grass"
 
         _BladeForward("Blade Forward", Float) = 0.38
         _BladeCurve("Blade Curve", Range(1, 4)) = 2
+
+        _Strength("Inactive Strength", Float) = 1
+
     }
 
     SubShader
@@ -37,7 +40,7 @@ Shader "Custom/Grass"
             HLSLPROGRAM
 
             #pragma target 4.6
-
+            #pragma enable_d3d11_debug_symbols
             #pragma vertex grassVert
             #pragma hull hull
             #pragma domain domain
