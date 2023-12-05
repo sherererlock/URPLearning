@@ -4,7 +4,7 @@
 
 Tessellation是将事物切割成更小部分的艺术。在我们的情况下，我们将对三角形进行细分，以便得到覆盖相同空间的更小三角形。这使得可以向几何图形添加更多细节，尽管在本教程中我们将专注于细分过程本身。
 
-GPU能够分割传递给它进行渲染的三角形。它出于各种原因执行此操作，例如当三角形的一部分最终被剪切时。我们无法控制这一点，但还有一个我们被允许配置的细分阶段。该阶段位于顶点着色器和片段着色器阶段之间。但这并不像只是向我们的着色器添加另一个程序那么简单。我们将需要一个外壳程序和域程序。
+GPU能够分割传递给它进行渲染的三角形。它出于各种原因执行此操作，例如当三角形的一部分最终被剪切时。我们无法控制这一点，但还有一个我们被允许配置的细分阶段。该阶段位于顶点着色器和片段着色器阶段之间。但这并不像只是向我们的着色器添加另一个程序那么简单。我们将需要一个Hull程序和domain程序。
 
 ![img](https://catlikecoding.com/unity/tutorials/advanced-rendering/tessellation/hulls-and-domains/shader-programs.png)
 
@@ -44,13 +44,13 @@ Shader "Custom/Tessellation" { … }
 
 ### Hull Shaders
 
-与几何着色器一样，细分阶段是灵活的，可以处理三角形、四边形或隔线。我们必须告诉它要处理哪种表面，并提供必要的数据。这是外壳程序的工作。在MyTessellation中添加一个程序，从一个什么也不做的void函数开始。
+与几何着色器一样，细分阶段是灵活的，可以处理三角形、四边形或隔线。我们必须告诉它要处理哪种表面，并提供必要的数据。这是Hull程序的工作。在MyTessellation中添加一个程序，从一个什么也不做的void函数开始。
 
 ```
 void MyHullProgram () {}
 ```
 
-外壳程序在一个表面片上操作，该片作为参数传递给它。我们必须添加一个InputPatch参数以实现这一点。
+Hull程序在一个表面片上操作，该片作为参数传递给它。我们必须添加一个InputPatch参数以实现这一点。
 
 ```
 void MyHullProgram (InputPatch patch) {}
@@ -68,7 +68,7 @@ void MyHullProgram (InputPatch<VertexData> patch) {}
 void MyHullProgram (InputPatch<VertexData, 3> patch) {}
 ```
 
-外壳程序的工作是将所需的顶点数据传递给细分阶段。尽管它被馈送整个patch，但该函数每次应仅输出一个顶点。它将针对patch中的每个顶点调用一次，并带有一个额外的参数，指定它应该使用哪个控制点（顶点）。该参数是带有SV_OutputControlPointID语义的无符号整数。
+Hull程序的工作是将所需的顶点数据传递给细分阶段。尽管它被馈送整个patch，但该函数每次应仅输出一个顶点。它将针对patch中的每个顶点调用一次，并带有一个额外的参数，指定它应该使用哪个控制点（顶点）。该参数是带有SV_OutputControlPointID语义的无符号整数。
 
 ```
 void MyHullProgram (
@@ -88,7 +88,7 @@ VertexData MyHullProgram (
 }
 ```
 
-这看起来像一个功能性的程序，所以让我们添加一个编译器指令以将其用作外壳着色器。对所有涉及的三个着色器通道都进行这样的操作。
+这看起来像一个功能性的程序，所以让我们添加一个编译器指令以将其用作Hull着色器。对所有涉及的三个着色器通道都进行这样的操作。
 
 ```
 			#pragma vertex MyVertexProgram
@@ -97,7 +97,7 @@ VertexData MyHullProgram (
 			#pragma geometry MyGeometryProgram
 ```
 
-这将产生一些编译错误，抱怨我们没有正确配置外壳着色器。与几何函数一样，它需要属性来配置它。首先，我们必须明确告诉它正在处理三角形。这通过UNITY_domain属性完成，参数是tri。
+这将产生一些编译错误，抱怨我们没有正确配置Hull着色器。与几何函数一样，它需要属性来配置它。首先，我们必须明确告诉它正在处理三角形。这通过UNITY_domain属性完成，参数是tri。
 
 ```
 [UNITY_domain("tri")]
@@ -172,20 +172,20 @@ TessellationFactors MyPatchConstantFunction (InputPatch<VertexData, 3> patch) {
 
 ### Domain Shaders
 
-在这一点上，着色器编译器将抱怨没有细分评估着色器的着色器无法存在。外壳着色器只是让细分工作正常所需的部分之一。一旦细分阶段确定了如何对patch进行细分，就由几何着色器来评估结果并生成最终三角形的顶点。因此，让我们为我们的域着色器创建一个函数，再次从一个存根开始。
+在这一点上，着色器编译器将抱怨没有细分评估着色器的着色器无法存在。Hull着色器只是让细分工作正常所需的部分之一。一旦细分阶段确定了如何对patch进行细分，就由几何着色器来评估结果并生成最终三角形的顶点。因此，让我们为我们的domain着色器创建一个函数，再次从一个存根开始。
 
 ```
 void MyDomainProgram () {}
 ```
 
-外壳着色器和域着色器都作用于相同的域，即三角形。我们再次通过UNITY_domain属性来表示这一点。
+Hull着色器和domain着色器都作用于相同的domain，即三角形。我们再次通过UNITY_domain属性来表示这一点。
 
 ```
 [UNITY_domain("tri")]
 void MyDomainProgram () {}
 ```
 
-域程序接收用于细分的细分因子，以及原始patch，该patch在这种情况下是OutputPatch类型。
+domain程序接收用于细分的细分因子，以及原始patch，该patch在这种情况下是OutputPatch类型。
 
 ```
 [UNITY_domain("tri")]
@@ -195,7 +195,7 @@ void MyDomainProgram (
 ) {}
 ```
 
-虽然细分阶段确定了patch应该如何细分，但它并不生成任何新的顶点。相反，它为这些顶点提供了重心坐标。域着色器负责使用这些坐标推导出最终的顶点。为了使这成为可能，域函数对每个顶点调用一次，并为其提供了其重心坐标，其具有SV_DomainLocation语义。
+虽然细分阶段确定了patch应该如何细分，但它并不生成任何新的顶点。相反，它为这些顶点提供了重心坐标。domain着色器负责使用这些坐标推导出最终的顶点。为了使这成为可能，domain函数对每个顶点调用一次，并为其提供了其重心坐标，其具有SV_DomainLocation语义。
 
 ```
 [UNITY_domain("tri")]
@@ -219,7 +219,7 @@ void MyDomainProgram (
 }
 ```
 
-要找到这个顶点的位置，我们必须在原始三角形域上进行插值，使用重心坐标。X、Y和Z坐标确定第一个、第二个和第三个控制点的权重。
+要找到这个顶点的位置，我们必须在原始三角形domain上进行插值，使用重心坐标。X、Y和Z坐标确定第一个、第二个和第三个控制点的权重。
 
 ```
 	VertexData data;
@@ -263,7 +263,7 @@ void MyDomainProgram (
 //			#pragma instancing_options lodfade force_same_maxcount_for_gl
 ```
 
-现在我们有了一个新的顶点，它将在此阶段之后发送到几何程序或插值器。但是这些程序期望的是InterpolatorsVertex数据，而不是VertexData。为了解决这个问题，我们让域着色器接管原始顶点程序的职责。这通过在其中调用MyVertexProgram（就像调用任何其他函数一样）并返回其结果来完成。
+现在我们有了一个新的顶点，它将在此阶段之后发送到几何程序或插值器。但是这些程序期望的是InterpolatorsVertex数据，而不是VertexData。为了解决这个问题，我们让domain着色器接管原始顶点程序的职责。这通过在其中调用MyVertexProgram（就像调用任何其他函数一样）并返回其结果来完成。
 
 ```
 [UNITY_domain("tri")]
@@ -278,7 +278,7 @@ InterpolatorsVertex MyDomainProgram (
 }
 ```
 
-现在我们可以将域着色器添加到我们的三个着色器通道中，但仍然会出现错误。
+现在我们可以将domain着色器添加到我们的三个着色器通道中，但仍然会出现错误。
 
 ```
 			#pragma hull MyHullProgram
@@ -287,7 +287,7 @@ InterpolatorsVertex MyDomainProgram (
 
 ### Control Points
 
-MyVertexProgram只需要在某个时候调用一次，只是我们改变了这个调用发生的地方。但是我们仍然必须指定一个在顶点着色器阶段期间调用的顶点程序，该阶段位于外壳着色器之前。在那一点上我们不必做任何事情，所以我们可以使用一个简单地将顶点数据不加修改地传递的函数。
+MyVertexProgram只需要在某个时候调用一次，只是我们改变了这个调用发生的地方。但是我们仍然必须指定一个在顶点着色器阶段期间调用的顶点程序，该阶段位于Hull着色器之前。在那一点上我们不必做任何事情，所以我们可以使用一个简单地将顶点数据不加修改地传递的函数。
 
 ```
 VertexData MyTessellationVertexProgram (VertexData v) {
@@ -370,7 +370,7 @@ InterpolatorsVertex MyDomainProgram (
 
 ### Tessellation Factors
 
-三角形patch如何被细分是由其细分因子控制的。我们在MyPatchConstantFunction中确定这些因子。目前，我们将它们全部设置为1，这不会产生视觉变化。外壳、细分和域着色器阶段正在工作，但它们传递原始顶点数据并没有生成任何新的内容。为了改变这一点，将所有因子设置为2。
+三角形patch如何被细分是由其细分因子控制的。我们在MyPatchConstantFunction中确定这些因子。目前，我们将它们全部设置为1，这不会产生视觉变化。Hull、细分和domain着色器阶段正在工作，但它们传递原始顶点数据并没有生成任何新的内容。为了改变这一点，将所有因子设置为2。
 
 ```
 TessellationFactors MyPatchConstantFunction (

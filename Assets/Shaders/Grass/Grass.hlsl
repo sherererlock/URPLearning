@@ -46,6 +46,8 @@ float _TessellationUniform;
 float4 _WindDistortionMap_ST;
 float4 _WindFrequency;
 float _WindStrength;
+float _BladeForward;
+float _BladeCurve;
 CBUFFER_END
 
 sampler2D _WindDistortionMap;
@@ -125,19 +127,27 @@ Varyings domain(TessellationFactors factors, OutputPatch<Attributes, 3> patch, f
 struct GeometryOutput
 {
 	float4 pos : SV_POSITION;
+	float3 normal : NORMAL;
 	float2 uv : TEXCOORD0;
+	float4 shadowCoord : TEXCOORD3;
 };
 
-GeometryOutput VertexOutput(float3 pos, float2 uv)
+GeometryOutput VertexOutput(float3 pos, float3 normal, float2 uv)
 {
 	GeometryOutput o;
 	o.pos = TransformObjectToHClip(pos);
+	
+	float3 wpos = TransformObjectToWorld(pos);
+	o.normal = TransformObjectToWorldNormal(normal);
+	o.shadowCoord = TransformWorldToShadowCoord(wpos);
 	o.uv = uv;
 
 	return o;
 }
 
-[maxvertexcount(3)]
+#define SEGMENT_COUNT 3
+
+[maxvertexcount(SEGMENT_COUNT * 2 + 1)]
 void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<GeometryOutput> stream)
 {
 	float3 pos = i[0].position;
@@ -150,7 +160,6 @@ void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<Geometr
 		tangent.y, binormal.y, normal.y,
 		tangent.z, binormal.z, normal.z
 		);
-
 
 	float3x3 rotationYMatrix = AngleAxis3x3(rand(pos) * 2 * 3.141592654, float3(0, 0, 1));
 
@@ -169,15 +178,63 @@ void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<Geometr
 	float width = _BladeWidth + _BladeWidthRandom * (rand(pos.xzy) * 2 - 1);
 	float height = _BladeHeight + _BladeHeightRandom * (rand(pos.zyx) * 2 - 1);
 
-	stream.Append(VertexOutput(pos + mul(transformMatrixFacing, float3(width * 10, 0, 0)), float2(0, 0)));
-	stream.Append(VertexOutput(pos + mul(transformMatrixFacing, float3(-width * 10, 0, 0)), float2(1, 0)));
+	width *= 10;
+	height *= 10;
 
-	stream.Append(VertexOutput(pos + mul(transformMatrix, float3(0, 0, height*10)), float2(0.5, 1)));
+	float forward = rand(pos.yyz) * _BladeForward;
+
+	float3 tangentNormal = float3(0, -1, 0);
+	float3 localNormal = mul(tangentToLocal, tangentNormal);
+
+	for (int i = 0; i < SEGMENT_COUNT; i++)
+	{
+		float t = i / (float)SEGMENT_COUNT;
+		float w = width * (1 - t);
+		float h = height * t;
+		float3x3 mat = i == 0 ? transformMatrixFacing : transformMatrix;
+
+		float f = pow(t, _BladeCurve) * forward;
+
+		float3 offset1 = float3(w, f, h);
+		float3 offset2 = float3(-w, f, h);
+
+		stream.Append(VertexOutput(pos + mul(mat, offset1), localNormal, float2(0, t)));
+		stream.Append(VertexOutput(pos + mul(mat, offset2), localNormal, float2(1, t)));
+	}
+
+	stream.Append(VertexOutput(pos + mul(transformMatrix, float3(0, forward, height)), localNormal, float2(0.5, 1)));
 }
 
-float4 grassFrag(GeometryOutput IN) : SV_Target
+float3 SampleEnv(float3 normal) {
+	float4 coefficients[7];
+	coefficients[0] = unity_SHAr;
+	coefficients[1] = unity_SHAg;
+	coefficients[2] = unity_SHAb;
+	coefficients[3] = unity_SHBr;
+	coefficients[4] = unity_SHBg;
+	coefficients[5] = unity_SHBb;
+	coefficients[6] = unity_SHC;
+	return max(0.0, SampleSH9(coefficients, normal));
+}
+
+float4 grassFrag(GeometryOutput IN, float facing : VFACE) : SV_Target
 {
-	return lerp(_BottomColor, _TopColor, IN.uv.y);
+	float3 normal = facing > 0 ? IN.normal : -IN.normal;
+
+	Light mainLight = GetMainLight();
+	half shadow = MainLightRealtimeShadow(IN.shadowCoord);
+
+	half NdotL = saturate(dot(normal, mainLight.direction)) ;
+	float3 ambient = SampleEnv(normal);
+	float3 intensity = mainLight.color * NdotL * shadow + ambient;
+	float4 baseColor = lerp(_BottomColor, _TopColor * float4(intensity, 1.0), IN.uv.y);
+
+	return baseColor;
+}
+
+half4 ShadowPassFragment(Varyings input) : SV_TARGET
+{
+	return 0;
 }
 
 #endif
