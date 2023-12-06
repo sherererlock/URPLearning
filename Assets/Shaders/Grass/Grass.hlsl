@@ -218,18 +218,6 @@ void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<Geometr
 	stream.Append(VertexOutput(pos + float3(sphereDis.x, sphereDis.y, sphereDis.z) + mul(transformMatrix, float3(0, forward, height)), localNormal, float2(0.5, 1)));
 }
 
-float3 SampleEnv(float3 normal) {
-	float4 coefficients[7];
-	coefficients[0] = unity_SHAr;
-	coefficients[1] = unity_SHAg;
-	coefficients[2] = unity_SHAb;
-	coefficients[3] = unity_SHBr;
-	coefficients[4] = unity_SHBg;
-	coefficients[5] = unity_SHBb;
-	coefficients[6] = unity_SHC;
-	return max(0.0, SampleSH9(coefficients, normal));
-}
-
 float4 grassFrag(GeometryOutput IN, float facing : VFACE) : SV_Target
 {
 	float3 normal = facing > 0 ? IN.normal : -IN.normal;

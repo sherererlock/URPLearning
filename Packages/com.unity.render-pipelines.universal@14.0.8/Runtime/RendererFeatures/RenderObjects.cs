@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering;
+using System;
 
 namespace UnityEngine.Experimental.Rendering.Universal
 {
@@ -28,6 +29,12 @@ namespace UnityEngine.Experimental.Rendering.Universal
     [URPHelpURL("renderer-features/renderer-feature-render-objects")]
     public class RenderObjects : ScriptableRendererFeature
     {
+        internal enum DepthSource
+        {
+            Depth = 0,
+            DepthNormals = 1
+        }
+
         /// <summary>
         /// Settings class used for the render objects renderer feature.
         /// </summary>
@@ -119,6 +126,8 @@ namespace UnityEngine.Experimental.Rendering.Universal
             /// The camera settings to use.
             /// </summary>
             public CustomCameraSettings cameraSettings = new CustomCameraSettings();
+
+            [SerializeField] internal DepthSource Source = DepthSource.DepthNormals;
         }
 
         /// <summary>
@@ -234,6 +243,19 @@ namespace UnityEngine.Experimental.Rendering.Universal
         public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
         {
             renderer.EnqueuePass(renderObjectsPass);
+
+            switch (settings.Source)
+            {
+                case DepthSource.Depth:
+                    renderObjectsPass.ConfigureInput(ScriptableRenderPassInput.Depth);
+                    break;
+                case DepthSource.DepthNormals:
+                    renderObjectsPass.ConfigureInput(ScriptableRenderPassInput.Normal);// need depthNormal prepass for forward-only geometry
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
         }
 
         internal override bool SupportsNativeRenderPass()
