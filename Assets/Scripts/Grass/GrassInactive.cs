@@ -5,15 +5,11 @@ using UnityEngine;
 [ExecuteAlways]
 public class GrassInactive : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-    }
-
+    public float radius = 5f;
     // Update is called once per frame
     void Update()
     {
         Shader.SetGlobalVector("_PositionMoving", transform.position);
-        Shader.SetGlobalFloat("_Radius", 5);
+        Shader.SetGlobalFloat("_Radius", radius);
     }
 }

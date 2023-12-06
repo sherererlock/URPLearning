@@ -47,6 +47,7 @@ float _WindStrength;
 float _BladeForward;
 float _BladeCurve;
 float _Strength;
+float _AmbientStrength;
 CBUFFER_END
 
 sampler2D _WindDistortionMap;
@@ -132,17 +133,16 @@ struct GeometryOutput
 	float4 pos : SV_POSITION;
 	float3 normal : NORMAL;
 	float2 uv : TEXCOORD0;
-	float4 shadowCoord : TEXCOORD3;
+	float3 worldPos : TEXCOORD3;
 };
 
 GeometryOutput VertexOutput(float3 pos, float3 normal, float2 uv)
 {
 	GeometryOutput o;
+
 	o.pos = TransformObjectToHClip(pos);
-	
-	float3 wpos = TransformObjectToWorld(pos);
+	o.worldPos = TransformObjectToWorld(pos);
 	o.normal = TransformObjectToWorldNormal(normal);
-	o.shadowCoord = TransformWorldToShadowCoord(wpos);
 	o.uv = uv;
 
 	return o;
@@ -215,7 +215,7 @@ void grassGeo(triangle Varyings i[3] : SV_POSITION, inout TriangleStream<Geometr
 		stream.Append(VertexOutput(newpos + mul(mat, offset2), localNormal, float2(1, t)));
 	}
 
-	stream.Append(VertexOutput(pos + float3(sphereDis.x * 1.5, sphereDis.y, sphereDis.z * 1.5) + mul(transformMatrix, float3(0, forward, height)), localNormal, float2(0.5, 1)));
+	stream.Append(VertexOutput(pos + float3(sphereDis.x, sphereDis.y, sphereDis.z) + mul(transformMatrix, float3(0, forward, height)), localNormal, float2(0.5, 1)));
 }
 
 float3 SampleEnv(float3 normal) {
@@ -234,15 +234,35 @@ float4 grassFrag(GeometryOutput IN, float facing : VFACE) : SV_Target
 {
 	float3 normal = facing > 0 ? IN.normal : -IN.normal;
 
+	float4 shadowCoord = TransformWorldToShadowCoord(IN.worldPos);
+#if _MAIN_LIGHT_SHADOWS_CASCADE || _MAIN_LIGHT_SHADOWS
+	Light mainLight = GetMainLight(shadowCoord);
+#else
 	Light mainLight = GetMainLight();
-	half shadow = MainLightRealtimeShadow(IN.shadowCoord);
+#endif
 
-	half NdotL = saturate(dot(normal, mainLight.direction)) ;
-	float3 ambient = SampleEnv(normal);
-	float3 intensity = mainLight.color * NdotL * shadow + ambient;
-	float4 baseColor = lerp(_BottomColor, _TopColor * float4(intensity, 1.0), IN.uv.y);
+	half shadow = mainLight.shadowAttenuation;
 
-	return baseColor;
+	float3 extraLights;
+	int pixelLightCount = GetAdditionalLightsCount();
+	for (int j = 0; j < pixelLightCount; ++j) 
+	{
+		Light light = GetAdditionalLight(j, IN.worldPos, half4(1, 1, 1, 1));
+		float3 attenuatedLightColor = light.color * (light.distanceAttenuation * light.shadowAttenuation);
+		extraLights += attenuatedLightColor;
+	}
+
+	float4 baseColor = lerp(_BottomColor, _TopColor, saturate(IN.uv.y));
+
+	float4 litColor = (baseColor * float4(mainLight.color, 1));
+
+	litColor += float4(extraLights, 1);
+
+	float4 final = litColor * shadow;
+	final += saturate((1 - shadow) * baseColor * 0.2);
+	final += (unity_AmbientSky * _AmbientStrength);
+
+	return final;
 }
 
 half4 ShadowPassFragment(Varyings input) : SV_TARGET

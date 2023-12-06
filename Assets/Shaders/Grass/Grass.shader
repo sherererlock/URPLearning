@@ -22,6 +22,7 @@ Shader "Custom/Grass"
 
         _Strength("Inactive Strength", Float) = 1
 
+        _AmbientStrength("Ambient Strength", Float) = 1
     }
 
     SubShader
@@ -46,6 +47,21 @@ Shader "Custom/Grass"
             #pragma domain domain
             #pragma geometry grassGeo
             #pragma fragment grassFrag
+
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS_CASCADE
+
+            #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
+            #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
+            #pragma multi_compile_fragment _ _SHADOWS_SOFT
+            #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
+            #pragma multi_compile _ SHADOWS_SHADOWMASK
+            #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
+            #pragma multi_compile_fog   
+            #pragma multi_compile _ DIRLIGHTMAP_COMBINED
+            #pragma multi_compile _ LIGHTMAP_ON
+
+
 
             #include "grass.hlsl"
 
