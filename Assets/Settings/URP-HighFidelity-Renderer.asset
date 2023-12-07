@@ -76,7 +76,8 @@ MonoBehaviour:
   - {fileID: 7945252014376545922}
   - {fileID: -563928682866535847}
   - {fileID: 7766967535049005097}
-  m_RendererFeatureMap: adc0de57c6d2eee5cecd87521f73c33382eede7f9c34436e591216cbd9852cf82958966cd2cfc96b
+  - {fileID: 8046740642174396323}
+  m_RendererFeatureMap: adc0de57c6d2eee5cecd87521f73c33382eede7f9c34436e591216cbd9852cf82958966cd2cfc96ba3e78008fbc3ab6f
   m_UseNativeRenderPass: 0
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
   xrSystemData: {fileID: 11400000, guid: 60e1133243b97e347b653163a8c01b64, type: 2}
@@ -174,7 +175,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6b3d386ba5cd94485973aee1479b272e, type: 3}
   m_Name: RenderObjects
   m_EditorClassIdentifier: 
-  m_Active: 1
+  m_Active: 0
   settings:
     passTag: RenderObjects
     Event: 250
@@ -219,3 +220,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 0
   m_Shader: {fileID: 4800000, guid: b44ab62376911734b88d54496e231e42, type: 3}
+--- !u!114 &8046740642174396323
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 468531c822c6dc044ac87f801605a6eb, type: 3}
+  m_Name: HBAORendererFeature
+  m_EditorClassIdentifier: 
+  m_Active: 1
+  depthSource: 0

@@ -96,7 +96,6 @@ float4 waterFrag(Varyings IN) : SV_Target
 	float noiseSample = SAMPLE_TEXTURE2D(_SurfaceNoiseMap, sampler_SurfaceNoiseMap, noiseUV).r;
 	float noise = noiseSample > surfaceNoiseCutoff ? 1 : 0.0;
 
-
 	float4 waterColor = lerp(_ShallowColor, _DeepColor, waterDepthDiffrence);
 
 	return waterColor + noise;

@@ -45,10 +45,11 @@
 3. 采样normal贴图
 
    ```c
+   // 开启unity normal texture渲染时，需要在shader中加入LightMode为DepthNormals的pass
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareNormalsTexture.hlsl"
-   
+   float3 normal = SampleSceneNormals(IN.uv);
    ```
-
+   
    
 
 
