@@ -49,7 +49,15 @@
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareNormalsTexture.hlsl"
    float3 normal = SampleSceneNormals(IN.uv);
    ```
+
+4. shader文件中不能有没有vert和fragment的空pass
+
+5. 随机值
+
+   ```c
    
+   ```
+
    
 
 

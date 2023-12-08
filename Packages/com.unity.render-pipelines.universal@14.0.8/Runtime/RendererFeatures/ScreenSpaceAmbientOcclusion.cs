@@ -535,7 +535,6 @@ namespace UnityEngine.Rendering.Universal
                     CoreUtils.SetRenderTarget(cmd, target);
                     Blitter.BlitTexture(cmd, baseMap.nameID, viewportScale, mat, (int)pass);
                 }
-
                 else
                     Blitter.BlitCameraTexture(cmd, baseMap, target, mat, (int)pass);
             }

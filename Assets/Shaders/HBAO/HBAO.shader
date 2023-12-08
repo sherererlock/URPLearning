@@ -1,8 +1,5 @@
 Shader "Hidden/HBAO"
 {
-    Properties
-    {
-    }
 
     HLSLINCLUDE
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
@@ -24,7 +21,7 @@ Shader "Hidden/HBAO"
 
             #pragma vertex Vert
             #pragma fragment HBAO
-            #pragma multi_compile_local_fragment _SOURCE_DEPTH _SOURCE_DEPTH_NORMALS
+            #pragma multi_compile_local_fragment _SOURCE_DEPTH_LOW _SOURCE_DEPTH_MEDIUM _SOURCE_DEPTH_HIGH _SOURCE_DEPTH_NORMALS
             #include "HBAO.hlsl"
 
             ENDHLSL
@@ -40,15 +37,6 @@ Shader "Hidden/HBAO"
             #pragma fragment HBAOBlur
 
             #include "HBAO.hlsl"
-
-            ENDHLSL
-        }
-
-        Pass
-        {
-            Name "HBAOFinalblitPass"
-
-            HLSLPROGRAM
 
             ENDHLSL
         }

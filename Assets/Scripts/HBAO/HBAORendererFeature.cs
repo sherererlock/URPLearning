@@ -110,7 +110,6 @@ public class HBAORendererFeature : ScriptableRendererFeature
 
             ConfigureTarget(renderer.cameraColorTargetHandle);
             ConfigureClear(ClearFlag.None, Color.white);
-              
         }
 
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)

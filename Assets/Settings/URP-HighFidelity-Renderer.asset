@@ -233,4 +233,4 @@ MonoBehaviour:
   m_Name: HBAORendererFeature
   m_EditorClassIdentifier: 
   m_Active: 1
-  depthSource: 0
+  depthSource: 1
