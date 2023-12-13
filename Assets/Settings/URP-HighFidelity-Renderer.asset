@@ -19,9 +19,9 @@ MonoBehaviour:
     AfterOpaque: 0
     Source: 1
     NormalSamples: 1
-    Intensity: 0.5
+    Intensity: 1
     DirectLightingStrength: 0.25
-    Radius: 0.25
+    Radius: 0.38
     Samples: 0
     BlurQuality: 0
     Falloff: 100
@@ -233,4 +233,13 @@ MonoBehaviour:
   m_Name: HBAORendererFeature
   m_EditorClassIdentifier: 
   m_Active: 1
+  aOSettings:
+    AORadius: 0.25
+    RadiusMaxPixel: 128
+    MaxDistance: 150.51
+    DistanceFallOff: 50
+    Intensity: 1
+    AngleBias: 0.05
+    aoOnly: 1
+    sharpness: 0
   depthSource: 1

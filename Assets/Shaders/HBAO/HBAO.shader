@@ -19,6 +19,7 @@ Shader "Hidden/HBAO"
 
             HLSLPROGRAM
 
+            #pragma enable_d3d11_debug_symbols
             #pragma vertex Vert
             #pragma fragment HBAO
             #pragma multi_compile_local_fragment _SOURCE_DEPTH_LOW _SOURCE_DEPTH_MEDIUM _SOURCE_DEPTH_HIGH _SOURCE_DEPTH_NORMALS
@@ -29,12 +30,44 @@ Shader "Hidden/HBAO"
 
         Pass
         {
-            Name "HBAOBlurPass"
+            Name "HBAOBlurHPass"
 
             HLSLPROGRAM
 
+            #pragma enable_d3d11_debug_symbols
             #pragma vertex Vert
-            #pragma fragment HBAOBlur
+            #pragma fragment HBAOBlurH
+
+            #include "HBAOBlur.hlsl"
+
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "HBAOBlurVPass"
+
+            HLSLPROGRAM
+
+            #pragma enable_d3d11_debug_symbols
+            #pragma vertex Vert
+            #pragma fragment HBAOBlurV
+
+            #include "HBAOBlur.hlsl"
+
+            ENDHLSL
+        }
+
+        Pass
+        {
+            Name "HBAOCompositePass"
+
+            HLSLPROGRAM
+
+            #pragma enable_d3d11_debug_symbols
+            #pragma vertex Vert
+            #pragma fragment HBAOComposite
+            #pragma multi_compile_local __ _DEBUG_AO_ONLY
 
             #include "HBAO.hlsl"
 
