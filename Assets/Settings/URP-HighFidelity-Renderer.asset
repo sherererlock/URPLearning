@@ -234,12 +234,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Active: 1
   aOSettings:
-    AORadius: 0.25
+    AORadius: 0.8
     RadiusMaxPixel: 128
     MaxDistance: 150.51
     DistanceFallOff: 50
     Intensity: 1
     AngleBias: 0.05
-    aoOnly: 1
-    sharpness: 0
-  depthSource: 1
+    aoOnly: 0
+    sharpness: 8
+  depthSource: 0
